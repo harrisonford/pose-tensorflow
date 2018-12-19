@@ -11,13 +11,13 @@ from util import visualize
 from dataset.pose_dataset import data_to_input
 
 
-cfg = load_config("demo/pose_cfg.yaml")
+cfg = load_config("/home/babybrain/PycharmProjects/pose-tensorflow/demo/pose_cfg.yaml")
 
 # Load and setup CNN part detector
 sess, inputs, outputs = predict.setup_pose_prediction(cfg)
 
 # Read image from file
-file_name = "demo/image.png"
+file_name = "/home/babybrain/PycharmProjects/pose-tensorflow/demo/test_baby.png"
 image = imread(file_name, mode='RGB')
 
 image_batch = data_to_input(image)

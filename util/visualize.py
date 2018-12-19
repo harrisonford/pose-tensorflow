@@ -1,11 +1,10 @@
 import math
-
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import numpy as np
 from scipy.misc import imresize
 import matplotlib
 matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 
 
 def _npcircle(image, cx, cy, radius, color, transparency=0.0):
@@ -48,7 +47,7 @@ def visualize_joints(image, pose):
     return visim
 
 
-def show_heatmaps(cfg, img, scmap, pose, cmap="jet"):
+def show_heatmaps(cfg, img, scmap, pose, cmap="jet", save_path=None, show=True):
     interp = "bilinear"
     all_joints = cfg.all_joints
     all_joints_names = cfg.all_joints_names
@@ -72,14 +71,79 @@ def show_heatmaps(cfg, img, scmap, pose, cmap="jet"):
     curr_plot.axis('off')
     curr_plot.imshow(visualize_joints(img, pose))
 
-    plt.show()
+    if save_path is not None:
+        plt.savefig(save_path)
+
+    if show:
+        plt.show()
+        plt.waitforbuttonpress()
+    plt.close()
+
+
+def show_heatmaps_babybrain(cfg, img, scmap, pose, cmap="jet", save_path=None, show=True, joint_list=None):
+    interp = "bilinear"
+    all_joints = cfg.all_joints
+    all_joints_names = cfg.all_joints_names
+
+    subplot_height = 2
+    if joint_list is None:
+        subplot_width = len(all_joints) + 1
+
+    else:
+        subplot_width = len(joint_list) + 1
+
+    f, axarr = plt.subplots(subplot_height, subplot_width)
+    plt_count = 0
+    for pidx, part in enumerate(all_joints):
+        plot_j = 0
+        plot_i = plt_count
+        if part in joint_list:
+            scmap_part = np.sum(scmap[:, :, part], axis=2)
+            data = [x for x in scmap_part.flatten() if x > 0.2]
+
+            scmap_part = imresize(scmap_part, 8.0, interp='bicubic')
+            scmap_part = np.lib.pad(scmap_part, ((4, 0), (4, 0)), 'minimum')
+
+            # plot heatmap
+            curr_plot = axarr[plot_j, plot_i]
+            curr_plot.set_title(all_joints_names[pidx])
+            curr_plot.axis('off')
+            curr_plot.imshow(img, interpolation=interp)
+            curr_plot.imshow(scmap_part, alpha=.5, cmap=cmap, interpolation=interp)
+
+            # plot histogram
+            # data = [x for x in scmap_part.flatten() if x > 50]
+            curr_plot = axarr[plot_j + 1, plot_i]
+            curr_plot.set_title('confidence values')
+            curr_plot.set_ylim([0, 8])
+            curr_plot.set_xlim([0, 1])
+            curr_plot.hist(data, density=True)
+            plt_count += 1
+
+    curr_plot = axarr[subplot_height - 1, subplot_width - 1]
+    curr_plot.set_title('Pose')
+    curr_plot.axis('off')
+    curr_plot.imshow(visualize_joints(img, pose))
+
+    curr_plot = axarr[0, subplot_width - 1]
+    curr_plot.set_title('Pose')
+    curr_plot.axis('off')
+    curr_plot.imshow(visualize_joints(img, pose))
+
+    if save_path is not None:
+        plt.savefig(save_path, dpi=600)
+
+    if show:
+        plt.show()
+        plt.waitforbuttonpress()
+    plt.close()
+
 
 def show_arrows(cfg, img, pose, arrows):
     fig = plt.figure()
     a = fig.add_subplot(2, 2, 1)
     plt.imshow(img)
     a.set_title('Initial Image')
-
 
     b = fig.add_subplot(2, 2, 2)
     plt.imshow(img)
@@ -99,6 +163,7 @@ def show_arrows(cfg, img, pose, arrows):
 
     plt.legend(handles=color_legends, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     plt.show()
+
 
 def waitforbuttonpress():
     plt.waitforbuttonpress(timeout=1)
